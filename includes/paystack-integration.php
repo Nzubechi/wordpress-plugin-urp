@@ -83,12 +83,15 @@ function urp_paystack_payment($user_data, $amount, $currency = 'NGN')
         'Content-Type' => 'application/json',
     );
 
+    error_log("SITE URL IS: ".site_url());
+
     // Prepare the data to send to Paystack for initialization
     $data = array(
         'email' => $user_data['email'],
         'amount' => $amount * 100, // Paystack works in kobo (smallest NGN unit)
         'currency' => $currency,
-        'callback_url' => site_url('paystack-callback'),  // Callback URL after payment
+        'callback_url' => site_url('paystack-callback'),
+        'metadata' => ["cancel_action" => site_url('paystack-cancel')]
     );
 
     // Send the request to Paystack to initialize the payment
@@ -102,31 +105,32 @@ function urp_paystack_payment($user_data, $amount, $currency = 'NGN')
     $body = wp_remote_retrieve_body($response);
     $json = json_decode($body);
 
+    // Debugging: Log the response to check for errors
+    error_log('Paystack API Response: ' . print_r($json, true));
+
     if ($json->status) {
         // Return the authorization URL to redirect the user
         return $json->data->authorization_url;
     } else {
+        error_log('Paystack API Error: ' . print_r($json, true));
         return false;
     }
 }
 
 function urp_handle_paystack_callback()
 {
+    error_log("Callback Started...");
+    error_log(print_r($_SESSION['user_data']));
     session_start(); // Start session to access session data
 
     // Ensure that the callback is only processed if the user submitted the registration form
     if (!isset($_SESSION['is_registered']) || $_SESSION['is_registered'] !== true) {
         // If the registration flag is not set, skip the callback processing
         error_log('Session not registered or callback not valid.');
-        clear_all_sessions_on_urp_form_load();
+        //TODO: clear_all_sessions_on_urp_form_load();
         return;
     }
     error_log('Received Callback Params: ' . print_r($_GET, true));
-    // Clear session data after failed or canceled payment
-    if (isset($_SESSION['user_data'])) {
-        unset($_SESSION['user_data']);  // Remove user data if exists
-    }
-
     // Check if either reference or trxref is available in the URL
     if (isset($_GET['reference'])) {
         $reference = sanitize_text_field($_GET['reference']);
@@ -171,6 +175,8 @@ function urp_handle_paystack_callback()
 
     // Check if payment is successful
     if ($json->status && $json->data->status == 'success') {
+        error_log("JSON STATUS IS SUCCESS");
+        error_log("SESSION['user_data']: ". print_r($_SESSION['user_data'], true));
         // Payment successful, now create the user
         if (isset($_SESSION['user_data'])) {
             urp_create_user_after_payment($_SESSION['user_data']);
@@ -184,8 +190,34 @@ function urp_handle_paystack_callback()
         exit();
     }
 }
-// Add action to handle the callback (URL: /paystack-callback)
-add_action('init', 'urp_handle_paystack_callback');
+
+// Register a custom URL (paystack-callback) for handling Paystack callback
+function urp_register_paystack_callback_endpoint() {
+    add_rewrite_rule(
+        '^paystack-callback/?$',  // The URL pattern to match
+        'index.php?paystack_callback=1',  // Query variable to trigger the callback function
+        'top'  // Priority for the rule
+    );
+}
+add_action('init', 'urp_register_paystack_callback_endpoint');
+
+// Add query variable to WordPress
+function urp_add_query_vars($vars) {
+    $vars[] = 'paystack_callback';  // Add the custom query variable
+    return $vars;
+}
+add_filter('query_vars', 'urp_add_query_vars');
+
+// Process the callback when the URL is accessed
+function urp_process_paystack_callback() {
+    // Check if the custom query variable 'paystack_callback' is set
+    if (get_query_var('paystack_callback')) {
+        urp_handle_paystack_callback();  // Call the function to handle the callback
+        exit();  // Stop further execution to prevent the page from loading
+    }
+}
+add_action('template_redirect', 'urp_process_paystack_callback');
+
 
 function urp_register_paystack_settings()
 {

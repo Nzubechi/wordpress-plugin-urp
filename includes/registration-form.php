@@ -3,7 +3,7 @@
 // User registration form display function
 function urp_registration_form()
 {
-    clear_all_sessions_on_urp_form_load();
+    // clear_all_sessions_on_urp_form_load();
     session_start(); // Start the session to store user data temporarily
 
     if (is_user_logged_in()) {
@@ -17,14 +17,14 @@ function urp_registration_form()
 
     // Display the registration form if not registered
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        if (
-            isset($_SESSION['is_registered'])
-            || $_SESSION['is_registered'] == true
-            || isset($_GET['reference'])
-            || $_GET['reference'] != ''
-        ) {
-            clear_all_sessions_on_urp_form_load();
-        }
+        // if (
+        //     isset($_SESSION['is_registered'])
+        //     || $_SESSION['is_registered'] == true
+        //     || isset($_GET['reference'])
+        //     || $_GET['reference'] != ''
+        // ) {
+        //     clear_all_sessions_on_urp_form_load();
+        // }
         // Capture and store user data temporarily in session
         $_SESSION['user_data'] = array(
             'username' => sanitize_text_field($_POST['username']),
@@ -34,6 +34,7 @@ function urp_registration_form()
         );
 
         $_SESSION['is_registered'] = true;
+        error_log("Form Is Processing...");
 
         // Process the payment (Paystack)
         urp_process_payment($_SESSION['user_data']);
@@ -108,11 +109,16 @@ function urp_create_user_after_payment($user_data)
         $user = new WP_User($user_id);
         $user->set_role($default_role);
 
+        // Log the user in automatically
+        wp_set_current_user($user_id); // Set the current user to the newly created user
+        wp_set_auth_cookie($user_id); // Set the authentication cookie so the user stays logged in
+
         // Clear the session data
         session_start();
         unset($_SESSION['user_data']); // Remove temporary session data
-        // Redirect to the success page
-        wp_redirect(home_url('/payment-success'));
+
+        // Redirect to the "My Account" page after login
+        wp_redirect(home_url('/my-account'));
         exit(); // Ensure no further code execution
     } else {
         // Log any errors during user creation
@@ -121,4 +127,5 @@ function urp_create_user_after_payment($user_data)
         exit();
     }
 }
+
 
