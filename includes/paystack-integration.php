@@ -1,7 +1,8 @@
 <?php
 
 // Paystack Settings page content
-function urp_paystack_settings_page() {
+function urp_paystack_settings_page()
+{
     ?>
     <div class="wrap">
         <h1>Paystack Settings</h1>
@@ -12,25 +13,29 @@ function urp_paystack_settings_page() {
                 <!-- Test Secret Key -->
                 <tr valign="top">
                     <th scope="row">Test Secret Key</th>
-                    <td><input type="text" name="paystack_test_secret_key" value="<?php echo esc_attr(get_option('paystack_test_secret_key')); ?>" required /></td>
+                    <td><input type="text" name="paystack_test_secret_key"
+                            value="<?php echo esc_attr(get_option('paystack_test_secret_key')); ?>" required /></td>
                 </tr>
 
                 <!-- Test Public Key -->
                 <tr valign="top">
                     <th scope="row">Test Public Key</th>
-                    <td><input type="text" name="paystack_test_public_key" value="<?php echo esc_attr(get_option('paystack_test_public_key')); ?>" required /></td>
+                    <td><input type="text" name="paystack_test_public_key"
+                            value="<?php echo esc_attr(get_option('paystack_test_public_key')); ?>" required /></td>
                 </tr>
 
                 <!-- Live Secret Key -->
                 <tr valign="top">
                     <th scope="row">Live Secret Key</th>
-                    <td><input type="text" name="paystack_live_secret_key" value="<?php echo esc_attr(get_option('paystack_live_secret_key')); ?>" required /></td>
+                    <td><input type="text" name="paystack_live_secret_key"
+                            value="<?php echo esc_attr(get_option('paystack_live_secret_key')); ?>" required /></td>
                 </tr>
 
                 <!-- Live Public Key -->
                 <tr valign="top">
                     <th scope="row">Live Public Key</th>
-                    <td><input type="text" name="paystack_live_public_key" value="<?php echo esc_attr(get_option('paystack_live_public_key')); ?>" required /></td>
+                    <td><input type="text" name="paystack_live_public_key"
+                            value="<?php echo esc_attr(get_option('paystack_live_public_key')); ?>" required /></td>
                 </tr>
 
                 <!-- Environment -->
@@ -53,7 +58,8 @@ function urp_paystack_settings_page() {
 
 
 // Function to initiate Paystack payment
-function urp_paystack_payment($user_data, $amount, $currency = 'NGN') {
+function urp_paystack_payment($user_data, $amount, $currency = 'NGN')
+{
     // Get the Paystack keys from settings
     $paystack_test_secret_key = get_option('paystack_test_secret_key');
     $paystack_test_public_key = get_option('paystack_test_public_key');
@@ -74,7 +80,7 @@ function urp_paystack_payment($user_data, $amount, $currency = 'NGN') {
     $payment_url = 'https://api.paystack.co/transaction/initialize';
     $headers = array(
         'Authorization' => 'Bearer ' . $paystack_secret_key,
-        'Content-Type'  => 'application/json',
+        'Content-Type' => 'application/json',
     );
 
     // Prepare the data to send to Paystack for initialization
@@ -87,9 +93,9 @@ function urp_paystack_payment($user_data, $amount, $currency = 'NGN') {
 
     // Send the request to Paystack to initialize the payment
     $response = wp_remote_post($payment_url, array(
-        'method'    => 'POST',
-        'headers'   => $headers,
-        'body'      => json_encode($data),
+        'method' => 'POST',
+        'headers' => $headers,
+        'body' => json_encode($data),
     ));
 
     // Decode the Paystack response
@@ -104,16 +110,22 @@ function urp_paystack_payment($user_data, $amount, $currency = 'NGN') {
     }
 }
 
-function urp_handle_paystack_callback() {
+function urp_handle_paystack_callback()
+{
     session_start(); // Start session to access session data
 
     // Ensure that the callback is only processed if the user submitted the registration form
     if (!isset($_SESSION['is_registered']) || $_SESSION['is_registered'] !== true) {
         // If the registration flag is not set, skip the callback processing
+        error_log('Session not registered or callback not valid.');
+        clear_all_sessions_on_urp_form_load();
         return;
     }
-
     error_log('Received Callback Params: ' . print_r($_GET, true));
+    // Clear session data after failed or canceled payment
+    if (isset($_SESSION['user_data'])) {
+        unset($_SESSION['user_data']);  // Remove user data if exists
+    }
 
     // Check if either reference or trxref is available in the URL
     if (isset($_GET['reference'])) {
@@ -123,14 +135,12 @@ function urp_handle_paystack_callback() {
     } else {
         // If neither parameter is found, log the error and redirect
         error_log('No reference or trxref found in Paystack callback');
+        if (isset($_SESSION['is_registered'])) {
+            unset($_SESSION['is_registered']); // Remove the registration flag if it exists
+        }
         wp_redirect(home_url('/payment-failed'));
         exit();
     }
-
-    // Log the reference to confirm which one is being used
-    error_log('Received reference: ' . $reference);
-    sleep(3);  // Small delay to ensure payment is processed
-
     // Get the Paystack environment setting (test or live)
     $paystack_env = get_option('paystack_env');  // Retrieve environment from settings (test/live)
 
@@ -146,6 +156,7 @@ function urp_handle_paystack_callback() {
     // Log the verify URL and secret key used for debugging
     // Verify the payment using Paystack's API
     $verify_url = 'https://api.paystack.co/transaction/verify/' . $reference;
+    error_log($verify_url);
     $headers = array(
         'Authorization' => 'Bearer ' . $paystack_secret_key, // Use the correct secret key based on environment
     );
@@ -162,8 +173,9 @@ function urp_handle_paystack_callback() {
     if ($json->status && $json->data->status == 'success') {
         // Payment successful, now create the user
         if (isset($_SESSION['user_data'])) {
-            error_log('CREATING USER...');
             urp_create_user_after_payment($_SESSION['user_data']);
+            // Clear session data after user is created
+            unset($_SESSION['user_data']);
         }
     } else {
         // Payment failed, log the failure and redirect to failure page
@@ -171,14 +183,12 @@ function urp_handle_paystack_callback() {
         wp_redirect(home_url('/payment-failed')); // Redirect to a payment failure page
         exit();
     }
-
-    // Clear the session data after processing
-    unset($_SESSION['is_registered']);
 }
 // Add action to handle the callback (URL: /paystack-callback)
 add_action('init', 'urp_handle_paystack_callback');
 
-function urp_register_paystack_settings() {
+function urp_register_paystack_settings()
+{
     // Register Paystack settings for both environments (test/live keys)
     register_setting('urp_paystack_settings_group', 'paystack_test_secret_key');
     register_setting('urp_paystack_settings_group', 'paystack_test_public_key');

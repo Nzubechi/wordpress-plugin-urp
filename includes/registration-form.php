@@ -3,6 +3,7 @@
 // User registration form display function
 function urp_registration_form()
 {
+    clear_all_sessions_on_urp_form_load();
     session_start(); // Start the session to store user data temporarily
 
     if (is_user_logged_in()) {
@@ -16,6 +17,14 @@ function urp_registration_form()
 
     // Display the registration form if not registered
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if (
+            isset($_SESSION['is_registered'])
+            || $_SESSION['is_registered'] == true
+            || isset($_GET['reference'])
+            || $_GET['reference'] != ''
+        ) {
+            clear_all_sessions_on_urp_form_load();
+        }
         // Capture and store user data temporarily in session
         $_SESSION['user_data'] = array(
             'username' => sanitize_text_field($_POST['username']),
@@ -33,7 +42,7 @@ function urp_registration_form()
     // Show the form
     ob_start();
     ?>
-    <form method="POST">
+    <form method="POST" class="urp-registration-form">
         <label for="username">Username:</label>
         <input type="text" name="username" required><br>
 
@@ -102,8 +111,6 @@ function urp_create_user_after_payment($user_data)
         // Clear the session data
         session_start();
         unset($_SESSION['user_data']); // Remove temporary session data
-        error_log('USER CREATED WITH ROLE: ' . $default_role);
-
         // Redirect to the success page
         wp_redirect(home_url('/payment-success'));
         exit(); // Ensure no further code execution
