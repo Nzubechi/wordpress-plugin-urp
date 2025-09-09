@@ -3,29 +3,37 @@
 // User registration form display function
 function urp_registration_form()
 {
-    // clear_all_sessions_on_urp_form_load();
     session_start(); // Start the session to store user data temporarily
 
+    // Check if the user is logged in and if already registered
     if (is_user_logged_in()) {
         $current_user = wp_get_current_user();
 
         // Check if the user is already registered (email or username)
         if (email_exists($current_user->user_email)) {
-            return '<p>Hey! You\'re already registered.</p>';
+            return '<div class="angelfss-urp-info">
+            <p class="angelfss-urp-text-center">Hey! You\'re already registered.
+            <a href="' . esc_url(home_url('/my-account')) . '">Go To Dashboard</a>
+            </p> </div>';
         }
     }
 
+    // Initialize error message variable
+    $error_message = '';
+
     // Display the registration form if not registered
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        // if (
-        //     isset($_SESSION['is_registered'])
-        //     || $_SESSION['is_registered'] == true
-        //     || isset($_GET['reference'])
-        //     || $_GET['reference'] != ''
-        // ) {
-        //     clear_all_sessions_on_urp_form_load();
-        // }
-        // Capture and store user data temporarily in session
+        // Call the validation function
+        $error_message = urp_validate_registration_form($_POST);
+
+        // If there are errors, return the error message with the form
+        if ($error_message) {
+            return '<div class="angelfss-urp-error">'
+                . $error_message . urp_registration_form_html()
+                . '</div>';
+        }
+
+        // Capture and store user data temporarily in session if no errors
         $_SESSION['user_data'] = array(
             'username' => sanitize_text_field($_POST['username']),
             'email' => sanitize_email($_POST['email']),
@@ -34,16 +42,48 @@ function urp_registration_form()
         );
 
         $_SESSION['is_registered'] = true;
-        error_log("Form Is Processing...");
-
         // Process the payment (Paystack)
         urp_process_payment($_SESSION['user_data']);
     }
 
-    // Show the form
+    // Show the registration form
+    return urp_registration_form_html();
+}
+
+// Validation function for the registration form
+function urp_validate_registration_form($data)
+{
+    $error_message = '';
+
+    // Validate email
+    $email = sanitize_email($data['email']);
+    if (!is_email($email)) {
+        $error_message .= '<p class="angelfss-urp-error">Invalid email format.</p>';
+    } elseif (email_exists($email)) {
+        $error_message .= '<p class="angelfss-urp-error">This email is already registered.</p>';
+    }
+
+    // Validate username
+    $username = sanitize_text_field($data['username']);
+    if (username_exists($username)) {
+        $error_message .= '<p class="angelfss-urp-error">This username is already taken.</p>';
+    }
+
+    // Validate password
+    $password = sanitize_text_field($data['password']);
+    if (strlen($password) < 8) {
+        $error_message .= '<p class="angelfss-urp-error">Password must be at least 8 characters long.</p>';
+    }
+
+    return $error_message;
+}
+
+// Helper function to generate the form HTML
+function urp_registration_form_html()
+{
     ob_start();
     ?>
-    <form method="POST" class="urp-registration-form">
+    <form method="POST" class="angelfss-urp-form">
         <label for="username">Username:</label>
         <input type="text" name="username" required><br>
 

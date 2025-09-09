@@ -64,8 +64,14 @@ function urp_register_settings() {
     register_setting('urp_settings_group', 'paypal_live_client_id');
     register_setting('urp_settings_group', 'paypal_env');
 
-    // Add your default role setting here
+    // Default User Role Setting
     register_setting('urp_settings_group', 'urp_default_user_role');
+
+    // Registration Fee Setting
+    register_setting('urp_settings_group', 'urp_registration_fee');  // Add this for registration fee
+    register_setting('urp_settings_group', 'urp_payment_currency'); // Add this for payment currency (if needed)
+    register_setting('urp_settings_group', 'urp_payment_gateway'); // Add this for payment gateway
 }
+
 
 ?>

@@ -1,0 +1,121 @@
+/* Form container styling */
+.angelfss-urp-center {
+  display: flex;
+  width: 100%;
+  max-width: 600px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+
+.angelfss-urp-msg {
+  margin: 0;
+}
+
+.angelfss-urp-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 4px;
+  background: #001119;
+  color: #fff;
+  text-decoration: none;
+}
+.angelfss-urp-btn:hover {
+  opacity: 0.85;
+}
+
+/* Styling for the info message box */
+.angelfss-urp-info {
+  border: 1px solid #7a7a7a;
+  background-color: #bbccea;
+  color: #2e4fbd;
+  padding: 15px;
+  border-radius: 5px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto 15px;
+  /* margin-bottom: 15px; */
+  font-size: 14px;
+}
+
+.angelfss-urp-info strong {
+  font-weight: bold;
+}
+
+/* Styling for the error message box */
+.angelfss-urp-error {
+  border: 1px solid #7a7a7a;
+  background-color: #f1eded;
+  color: #a94442;
+  padding: 15px;
+  border-radius: 5px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto 15px;
+  /* margin-bottom: 15px; */
+  font-size: 14px;
+}
+
+.angelfss-urp-error strong {
+  font-weight: bold;
+}
+
+/* Styling for the form  box*/
+.angelfss-urp-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+/* Form elements styling */
+.angelfss-urp-form label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.angelfss-urp-form input,
+.angelfss-urp-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.angelfss-urp-form input[type="submit"] {
+  background-color: #001119;
+  color: white;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.angelfss-urp-form input[type="submit"]:hover {
+  background-color: #6d6f6f;
+}
+
+/* Responsive styling for small devices */
+@media (max-width: 600px) {
+  .angelfss-urp-form {
+    padding: 15px;
+  }
+
+  .angelfss-urp-form label {
+    font-size: 14px;
+  }
+
+  .angelfss-urp-form input,
+  .angelfss-urp-form select {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
